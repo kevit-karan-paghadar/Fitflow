@@ -77,6 +77,8 @@ const LS = {
   water:    "fitflow_water",
   weight:   "fitflow_weight",
   height:   "fitflow_height",
+  auth:     "fitflow_auth",
+  users:    "fitflow_users",
 };
 
 const lsGet = (key, fallback) => {
@@ -139,7 +141,7 @@ function computeStats(weekDone) {
 }
 
 // ─── SCREEN: Home ─────────────────────────────────────────────────────────────
-function HomeScreen({ onStartWorkout, weekDone }) {
+function HomeScreen({ onStartWorkout, weekDone, userName }) {
   const [water, setWater] = useState(() => lsGet(LS.water, 0));
   const maxWater = 8;
   const setWaterPersist = (v) => { setWater(v); lsSet(LS.water, v); };
@@ -183,10 +185,10 @@ function HomeScreen({ onStartWorkout, weekDone }) {
         <div style={s.between}>
           <div>
             <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 4 }}>{greeting} 👋</div>
-            <div style={s.h1}>Karan</div>
+            <div style={s.h1}>{userName}</div>
           </div>
           <div style={{ position: "relative" }}>
-            <div style={{ width: 44, height: 44, borderRadius: 22, background: `linear-gradient(135deg, ${C.purple}, ${C.accent})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>K</div>
+            <div style={{ width: 44, height: 44, borderRadius: 22, background: `linear-gradient(135deg, ${C.purple}, ${C.accent})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{userName?.[0]?.toUpperCase()}</div>
             <div style={{ position: "absolute", top: 0, right: 0, width: 14, height: 14, background: C.accent, borderRadius: 7, border: `2px solid ${C.bg}` }} />
           </div>
         </div>
@@ -733,7 +735,7 @@ function ProgressScreen({ weekDone }) {
 }
 
 // ─── SCREEN: Profile ──────────────────────────────────────────────────────────
-function ProfileScreen({ profileStats }) {
+function ProfileScreen({ profileStats, userName, userEmail, onLogout }) {
   const [weight, setWeight] = useState(() => lsGet(LS.weight, ""));
   const [height, setHeight] = useState(() => lsGet(LS.height, ""));
 
@@ -765,9 +767,9 @@ function ProfileScreen({ profileStats }) {
       <div style={{ padding: "20px 20px 0" }}>
         {/* Header */}
         <div style={{ textAlign: "center", paddingBottom: 24 }}>
-          <div style={{ width: 80, height: 80, borderRadius: 40, background: `linear-gradient(135deg, ${C.purple}, ${C.accent})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto" }}>K</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: C.textPrimary, marginTop: 12 }}>Karan</div>
-          <div style={{ fontSize: 14, color: C.textMuted }}>karan.paghadar@kevit.io</div>
+          <div style={{ width: 80, height: 80, borderRadius: 40, background: `linear-gradient(135deg, ${C.purple}, ${C.accent})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto" }}>{userName?.[0]?.toUpperCase()}</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: C.textPrimary, marginTop: 12 }}>{userName}</div>
+          <div style={{ fontSize: 14, color: C.textMuted }}>{userEmail}</div>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: `${C.orange}22`, border: `1px solid ${C.orange}44`, borderRadius: 20, padding: "6px 14px", marginTop: 10 }}>
             <span style={{ fontSize: 14 }}>🔥</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: C.orange }}>
@@ -843,9 +845,188 @@ function ProfileScreen({ profileStats }) {
           )}
         </div>
 
-        <div style={{ textAlign: "center", marginTop: 28, paddingBottom: 8 }}>
+        <button onClick={onLogout} style={{ ...s.btn(`${C.red}22`, C.red), border: `1px solid ${C.red}44`, marginTop: 28 }}>
+          Log Out
+        </button>
+
+        <div style={{ textAlign: "center", marginTop: 16, paddingBottom: 8 }}>
           <div style={{ fontSize: 12, color: C.textMuted }}>FitFlow v1.0 · Made with 💚 for your health</div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── SCREEN: Login ───────────────────────────────────────────────────────────
+function LoginScreen({ onLogin, onGoSignup }) {
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
+  const [error,    setError]    = useState("");
+  const [showPass, setShowPass] = useState(false);
+
+  const inputStyle = {
+    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14,
+    padding: "13px 16px", color: C.textPrimary, fontSize: 15, fontWeight: 500,
+    outline: "none", width: "100%", boxSizing: "border-box",
+  };
+
+  const handleLogin = () => {
+    setError("");
+    if (!email.trim() || !password) { setError("Please fill in all fields."); return; }
+    const users = lsGet(LS.users, []);
+    const user  = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password);
+    if (!user) { setError("Incorrect email or password."); return; }
+    lsSet(LS.auth, { name: user.name, email: user.email });
+    onLogin({ name: user.name, email: user.email });
+  };
+
+  return (
+    <div style={{ ...s.content, display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 28px" }}>
+      {/* Brand */}
+      <div style={{ textAlign: "center", marginBottom: 36 }}>
+        <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 72, height: 72, borderRadius: 24, background: `linear-gradient(135deg, ${C.purple}, ${C.accent})`, fontSize: 34, marginBottom: 16 }}>⚡</div>
+        <div style={{ fontSize: 28, fontWeight: 900, color: C.textPrimary, letterSpacing: -0.5 }}>FitFlow</div>
+        <div style={{ fontSize: 14, color: C.textSecondary, marginTop: 4 }}>Welcome back — let's get moving</div>
+      </div>
+
+      {/* Form */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: 1, marginBottom: 6 }}>EMAIL</div>
+          <input
+            type="email" placeholder="you@example.com" value={email}
+            onChange={e => { setEmail(e.target.value); setError(""); }}
+            onKeyDown={e => e.key === "Enter" && handleLogin()}
+            style={inputStyle}
+          />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: 1, marginBottom: 6 }}>PASSWORD</div>
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPass ? "text" : "password"} placeholder="••••••••" value={password}
+              onChange={e => { setPassword(e.target.value); setError(""); }}
+              onKeyDown={e => e.key === "Enter" && handleLogin()}
+              style={{ ...inputStyle, paddingRight: 48 }}
+            />
+            <button onClick={() => setShowPass(p => !p)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 16, color: C.textMuted }}>
+              {showPass ? "🙈" : "👁️"}
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <div style={{ background: `${C.red}18`, border: `1px solid ${C.red}44`, borderRadius: 12, padding: "10px 14px", fontSize: 13, color: C.red }}>
+            {error}
+          </div>
+        )}
+
+        <button onClick={handleLogin} style={{ ...s.btn(C.accent, C.bg), marginTop: 6, fontSize: 16 }}>
+          Log In
+        </button>
+      </div>
+
+      <div style={{ textAlign: "center", marginTop: 24 }}>
+        <span style={{ fontSize: 14, color: C.textSecondary }}>Don't have an account? </span>
+        <span onClick={onGoSignup} style={{ fontSize: 14, fontWeight: 700, color: C.accent, cursor: "pointer" }}>Sign Up</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── SCREEN: Signup ───────────────────────────────────────────────────────────
+function SignupScreen({ onSignup, onGoLogin }) {
+  const [name,     setName]     = useState("");
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm,  setConfirm]  = useState("");
+  const [error,    setError]    = useState("");
+  const [showPass, setShowPass] = useState(false);
+
+  const inputStyle = {
+    background: C.surface, border: `1px solid ${C.border}`, borderRadius: 14,
+    padding: "13px 16px", color: C.textPrimary, fontSize: 15, fontWeight: 500,
+    outline: "none", width: "100%", boxSizing: "border-box",
+  };
+
+  const handleSignup = () => {
+    setError("");
+    if (!name.trim() || !email.trim() || !password || !confirm) { setError("Please fill in all fields."); return; }
+    if (!/\S+@\S+\.\S+/.test(email.trim())) { setError("Enter a valid email address."); return; }
+    if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    if (password !== confirm) { setError("Passwords do not match."); return; }
+    const users = lsGet(LS.users, []);
+    if (users.find(u => u.email.toLowerCase() === email.trim().toLowerCase())) { setError("An account with this email already exists."); return; }
+    const newUser = { name: name.trim(), email: email.trim().toLowerCase(), password };
+    lsSet(LS.users, [...users, newUser]);
+    lsSet(LS.auth,  { name: newUser.name, email: newUser.email });
+    onSignup({ name: newUser.name, email: newUser.email });
+  };
+
+  return (
+    <div style={{ ...s.content, display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 28px" }}>
+      {/* Brand */}
+      <div style={{ textAlign: "center", marginBottom: 28 }}>
+        <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 72, height: 72, borderRadius: 24, background: `linear-gradient(135deg, ${C.purple}, ${C.accent})`, fontSize: 34, marginBottom: 16 }}>⚡</div>
+        <div style={{ fontSize: 28, fontWeight: 900, color: C.textPrimary, letterSpacing: -0.5 }}>FitFlow</div>
+        <div style={{ fontSize: 14, color: C.textSecondary, marginTop: 4 }}>Create your account and start today</div>
+      </div>
+
+      {/* Form */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: 1, marginBottom: 6 }}>FULL NAME</div>
+          <input
+            type="text" placeholder="Alex Johnson" value={name}
+            onChange={e => { setName(e.target.value); setError(""); }}
+            style={inputStyle}
+          />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: 1, marginBottom: 6 }}>EMAIL</div>
+          <input
+            type="email" placeholder="you@example.com" value={email}
+            onChange={e => { setEmail(e.target.value); setError(""); }}
+            style={inputStyle}
+          />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: 1, marginBottom: 6 }}>PASSWORD</div>
+          <div style={{ position: "relative" }}>
+            <input
+              type={showPass ? "text" : "password"} placeholder="Min. 6 characters" value={password}
+              onChange={e => { setPassword(e.target.value); setError(""); }}
+              style={{ ...inputStyle, paddingRight: 48 }}
+            />
+            <button onClick={() => setShowPass(p => !p)} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 16, color: C.textMuted }}>
+              {showPass ? "🙈" : "👁️"}
+            </button>
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: 1, marginBottom: 6 }}>CONFIRM PASSWORD</div>
+          <input
+            type={showPass ? "text" : "password"} placeholder="Re-enter password" value={confirm}
+            onChange={e => { setConfirm(e.target.value); setError(""); }}
+            onKeyDown={e => e.key === "Enter" && handleSignup()}
+            style={inputStyle}
+          />
+        </div>
+
+        {error && (
+          <div style={{ background: `${C.red}18`, border: `1px solid ${C.red}44`, borderRadius: 12, padding: "10px 14px", fontSize: 13, color: C.red }}>
+            {error}
+          </div>
+        )}
+
+        <button onClick={handleSignup} style={{ ...s.btn(C.accent, C.bg), marginTop: 6, fontSize: 16 }}>
+          Create Account
+        </button>
+      </div>
+
+      <div style={{ textAlign: "center", marginTop: 24 }}>
+        <span style={{ fontSize: 14, color: C.textSecondary }}>Already have an account? </span>
+        <span onClick={onGoLogin} style={{ fontSize: 14, fontWeight: 700, color: C.accent, cursor: "pointer" }}>Log In</span>
       </div>
     </div>
   );
@@ -859,6 +1040,13 @@ const navItems = [
 ];
 
 export default function FitFlowApp() {
+  const [authUser,   setAuthUser]   = useState(() => lsGet(LS.auth, null));
+  const [authScreen, setAuthScreen] = useState("login"); // "login" | "signup"
+
+  const handleLogin  = (user) => setAuthUser(user);
+  const handleSignup = (user) => setAuthUser(user);
+  const handleLogout = () => { lsSet(LS.auth, null); setAuthUser(null); setAuthScreen("login"); };
+
   const [screen,     setScreen]     = useState("home");
   const [prevScreen, setPrevScreen] = useState(null);
   const [startWeek,  setStartWeek]  = useState(null);
@@ -920,30 +1108,39 @@ export default function FitFlowApp() {
           </div>
         </div>
 
-        {/* Screen Router */}
-        {screen === "home"     && <HomeScreen onStartWorkout={launchWorkout} weekDone={weekDone} />}
-        {screen === "workout"  && <WorkoutScreen onBack={() => goTo(prevScreen || "home")} weekDone={weekDone} updateWeekDone={updateWeekDone} resetAllProgress={resetAllProgress} startWeek={startWeek} startDay={startDay} />}
-        {screen === "progress" && <ProgressScreen weekDone={weekDone} />}
-        {screen === "profile"  && <ProfileScreen profileStats={profileStats} />}
+        {/* Auth Gate */}
+        {!authUser ? (
+          authScreen === "login"
+            ? <LoginScreen  onLogin={handleLogin}   onGoSignup={() => setAuthScreen("signup")} />
+            : <SignupScreen onSignup={handleSignup} onGoLogin={() => setAuthScreen("login")}  />
+        ) : (
+          <>
+            {/* Screen Router */}
+            {screen === "home"     && <HomeScreen onStartWorkout={launchWorkout} weekDone={weekDone} userName={authUser.name} />}
+            {screen === "workout"  && <WorkoutScreen onBack={() => goTo(prevScreen || "home")} weekDone={weekDone} updateWeekDone={updateWeekDone} resetAllProgress={resetAllProgress} startWeek={startWeek} startDay={startDay} />}
+            {screen === "progress" && <ProgressScreen weekDone={weekDone} />}
+            {screen === "profile"  && <ProfileScreen profileStats={profileStats} userName={authUser.name} userEmail={authUser.email} onLogout={handleLogout} />}
 
-        {/* Bottom Nav */}
-        <div style={s.bottomNav}>
-          {navItems.map(n => {
-            const handleNav = () => n.key === "workout"
-              ? launchWorkout(nextPipelineDay?.weekNum, nextPipelineDay?.day)
-              : goTo(n.key);
-            return (
-              <div key={n.key} style={s.navItem(screen === n.key)} onClick={handleNav}>
-                <span style={s.navIcon(screen === n.key)}>{n.icon}</span>
-                <span style={s.navLabel(screen === n.key)}>{n.label}</span>
+            {/* Bottom Nav */}
+            <div style={s.bottomNav}>
+              {navItems.map(n => {
+                const handleNav = () => n.key === "workout"
+                  ? launchWorkout(nextPipelineDay?.weekNum, nextPipelineDay?.day)
+                  : goTo(n.key);
+                return (
+                  <div key={n.key} style={s.navItem(screen === n.key)} onClick={handleNav}>
+                    <span style={s.navIcon(screen === n.key)}>{n.icon}</span>
+                    <span style={s.navLabel(screen === n.key)}>{n.label}</span>
+                  </div>
+                );
+              })}
+              <div style={s.navItem(screen === "profile")} onClick={() => goTo("profile")}>
+                <span style={s.navIcon(screen === "profile")}>👤</span>
+                <span style={s.navLabel(screen === "profile")}>Profile</span>
               </div>
-            );
-          })}
-          <div style={s.navItem(screen === "profile")} onClick={() => goTo("profile")}>
-            <span style={s.navIcon(screen === "profile")}>👤</span>
-            <span style={s.navLabel(screen === "profile")}>Profile</span>
-          </div>
-        </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div style={{ position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)", background: `${C.surface}CC`, backdropFilter: "blur(10px)", border: `1px solid ${C.border}`, borderRadius: 20, padding: "8px 18px", fontSize: 12, color: C.textMuted, whiteSpace: "nowrap" }}>
